@@ -21,6 +21,13 @@ Queremos programar un programa de tipo web scrapping con el que podamos obtener
 una página web, mediante su URL, y poder analizar su contenido HTML con tal de extraer 
 datos e información específica. 
 
-La URL elegida es la siguiente.URL: https://rvest.tidyverse.org/
+La URL elegida es la siguiente.URL: https://www.mediawiki.org/wiki/MediaWiki
 
+Lectura base: 
+
+```{r get_webpage, include=TRUE}
+html <- read_html("https://www.mediawiki.org/wiki/MediaWiki")
+class(html)
+print(html)
+```
 
