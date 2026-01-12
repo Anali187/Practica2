@@ -74,3 +74,4 @@ links <- page %>%
 links
 ```
 
+https://chatgpt.com/c/6965470f-3a20-832c-b47f-05c09fe8ec4b
