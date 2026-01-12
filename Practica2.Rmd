@@ -16,7 +16,9 @@ library(ggplot2)
 library(rvest)
 ```
 
-## Practica2
+## Practica2 
+
+### Ejercicio 1
 Queremos programar un programa de tipo web scrapping con el que podamos obtener 
 una página web, mediante su URL, y poder analizar su contenido HTML con tal de extraer 
 datos e información específica. 
@@ -30,4 +32,27 @@ html <- read_html("https://www.mediawiki.org/wiki/MediaWiki")
 class(html)
 print(html)
 ```
+
+### Ejercicio 2
+Analizar el contenido de la web, buscando el título de la página (que en HTML 
+se etiqueta como “title”). 
+En las cabeceras web encontramos información como el título, los ficheros de 
+estilo visual, y meta-información como el nombre del autor de la página, una 
+descripción de esta, el tipo de codificación de esta, o palabras clave que indican 
+qué tipo de información contiene la página. Una vez descargada la página, y 
+convertida a un formato analizable (como XML), buscaremos los elementos de 
+tipo “title”. P.e. “<title>Titulo de Página</title>”. 
+
+```{r get_title, include=TRUE}
+url <- "https://www.mediawiki.org/wiki/MediaWiki"
+
+page <- read_html(url)
+
+title <- page %>%
+  html_element("title") %>%
+  html_text(trim = TRUE)
+
+title
+```
+
 
