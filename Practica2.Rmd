@@ -9,9 +9,20 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r setup, include=FALSE}
+library(httr)
+library(XML)
+library(ggplot2)
+library(rvest)
+```
+
+
+
 ## Practica2
 Queremos programar un programa de tipo web scrapping con el que podamos obtener 
 una página web, mediante su URL, y poder analizar su contenido HTML con tal de extraer 
 datos e información específica. 
 
 La URL elegida es la siguiente.URL: https://rvest.tidyverse.org/
+
+html <- read_html("http://rvest.tidyverse.org/")
