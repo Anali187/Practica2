@@ -14,6 +14,7 @@ library(httr)
 library(XML)
 library(ggplot2)
 library(rvest)
+library(dplyr)
 ```
 
 ## Practica2 
@@ -82,5 +83,24 @@ En este paso nos interesa reunir los datos obtenidos en el anterior paso.
 Tendremos que comprobar, para cada enlace, cuantas veces aparece. 
 
 ```{r create_table, include=TRUE}
-https://chatgpt.com/c/6965470f-3a20-832c-b47f-05c09fe8ec4b
+url <- "https://www.mediawiki.org/wiki/MediaWiki"
+
+page <- read_html(url)
+
+
+df <- tibble(
+  text = as.character(page %>% html_elements("a") %>% html_text(trim = TRUE)),
+  href = as.character(page %>% html_elements("a") %>% html_attr("href"))
+)
+links <- page %>% html_elements("a")
+texts <- links %>% html_text(trim = TRUE)
+hrefs <- links %>% html_attr("href")
+
+# Solo vectores válidos
+df <- tibble(
+  text = texts,
+  href = hrefs
+)
+
+df 
 ```
