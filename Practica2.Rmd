@@ -74,3 +74,13 @@ links <- page %>%
 links
 ```
 
+### Ejercicio 4
+Generar una tabla con cada enlace encontrado, indicando el texto que
+acompaña el enlace, y el número de veces que aparece un enlace con ese
+mismo objetivo.
+En este paso nos interesa reunir los datos obtenidos en el anterior paso.
+Tendremos que comprobar, para cada enlace, cuantas veces aparece. 
+
+```{r create_table, include=TRUE}
+
+```
