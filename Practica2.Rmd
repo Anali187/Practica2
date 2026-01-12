@@ -9,14 +9,12 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r setup, include=FALSE}
+```{r carga_libs, include=FALSE}
 library(httr)
 library(XML)
 library(ggplot2)
 library(rvest)
 ```
-
-
 
 ## Practica2
 Queremos programar un programa de tipo web scrapping con el que podamos obtener 
@@ -25,4 +23,4 @@ datos e información específica.
 
 La URL elegida es la siguiente.URL: https://rvest.tidyverse.org/
 
-html <- read_html("http://rvest.tidyverse.org/")
+
