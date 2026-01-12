@@ -67,8 +67,10 @@ enlace).
 
 ```{r get_ahref, include=TRUE}
 url <- "https://www.mediawiki.org/wiki/MediaWiki"
-pagina <- read_html(url)
-enlaces <- html_nodes(pagina, "a")
-hrefs <- html_attr(enlaces, "href")
+page <- read_html(url)
+links <- page %>%
+  html_elements("a") %>%
+  html_attr("href")
+links
 ```
 
