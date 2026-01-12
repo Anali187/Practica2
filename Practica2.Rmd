@@ -66,7 +66,9 @@ nos quedaremos con la URL de destino y con el valor del enlace (texto del
 enlace). 
 
 ```{r get_ahref, include=TRUE}
-
-
+url <- "https://www.mediawiki.org/wiki/MediaWiki"
+pagina <- read_html(url)
+enlaces <- html_nodes(pagina, "a")
+hrefs <- html_attr(enlaces, "href")
 ```
 
