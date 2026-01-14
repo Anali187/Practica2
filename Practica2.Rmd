@@ -222,29 +222,25 @@ Un histograma con la frecuencia de aparición de los enlaces, pero separado por
 URLs absolutas (con “http…”) y URLs relativas.
 
 ```{r apartado2_1, include=TRUE}
-# Clasificar enlaces en absolutos y relativos
-tabla_final$tipo_url <- ifelse(
-  grepl("^http", tabla_final$enlace_url),
-  "Absoluta (http, https)",
-  "Relativa(/wiki/...,#..)"
+library(ggplot2)
+
+# Crear data frame con tipo de URL
+df_tipo <- data.frame(
+  tipo_url = web_mediawiki$tipo_url
 )
-# Crear data frame para el histograma
-df_histograma <- data.frame(
-  veces_visto = tabla_final$veces_visto,
-  tipo_url = tabla_final$tipo_url
-)
-# Histograma con qplot
-qplot(
-  x = veces_visto,
-  data = df_histograma,
-  geom = "histogram",
-  fill = tipo_url,
-  bins = 10,
-  alpha = I(0.6),
-  main = "Frecuencia de aparición de enlaces",
-  xlab = "Número de veces que aparece el enlace",
-  ylab = "Frecuencia"
-)
+
+# Gráfico de barras contando enlaces absolutos y relativos
+ggplot(df_tipo, aes(x = tipo_url, fill = tipo_url)) +
+  geom_bar() +
+  labs(
+    title = "Cantidad de enlaces por tipo de URL",
+    x = "Tipo de URL",
+    y = "Número de enlaces",
+    fill = "Tipo de URL"
+  ) +
+  theme_minimal()
+
+
 ```
 
 ### Ejericio:2
