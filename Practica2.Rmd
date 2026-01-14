@@ -284,33 +284,64 @@ gráfico lo uniremos a los anteriores. El objetivo final es obtener una imagen q
 recopile los gráficos generados
 
 ```{r infografia, include=TRUE}
-# 1. Preparar datos: convertir a numérico
+# 1. Asegurarse de que 'veces_visto' es numérico
   web_mediawiki$veces_visto <- as.numeric(web_mediawiki$veces_visto)
 
-# 2. Resumir total de veces por tipo de URL
+# 2. Gráfico de barras: frecuencia total de aparición por tipo de URL
   df_frecuencia <- web_mediawiki %>%
-    group_by(tipo_url) %>%
-    summarise(total_veces = sum(veces_visto, na.rm = TRUE))
+  group_by(tipo_url) %>%
+  summarise(total_veces = sum(veces_visto, na.rm = TRUE))
 
-# 3. Gráfico de barras simple
-  g1 <- ggplot(df_frecuencia, aes(x = tipo_url, y = total_veces, fill = tipo_url)) +
-    geom_col() +
-    labs(
-      title = "Frecuencia total de aparición de enlaces por tipo de URL",
-      x = "Tipo de URL",
-      y = "Total de veces que aparece el enlace",
-      fill = "Tipo de URL"
-    ) +
-    theme_minimal()
+g1 <- ggplot(df_frecuencia, aes(x = tipo_url, y = total_veces, fill = tipo_url)) +
+  geom_col() +
+  labs(
+    title = "Frecuencia total de aparición de enlaces",
+    x = "Tipo de URL",
+    y = "Total apariciones",
+    fill = "Tipo de URL"
+  ) +
+  theme_minimal() +
+  theme(plot.margin = unit(c(1,1,1,1), "cm"))
 
+# 3. Gráfico de barras: MediaWiki vs otros dominios
+  web_mediawiki$destino <- ifelse(
+  !is.na(web_mediawiki$url_normalizada) &
+    grepl("^http", web_mediawiki$url_normalizada) &
+    !grepl("www.mediawiki.org", web_mediawiki$url_normalizada),
+  "Otros dominios",
+  "MediaWiki"
+)
+g2 <- ggplot(web_mediawiki, aes(x = destino, fill = destino)) +
+  geom_bar(na.rm = TRUE) +
+  labs(
+    title = "Enlaces a MediaWiki vs otros dominios",
+    x = "Destino",
+    y = "Cantidad",
+    fill = "Destino"
+  ) +
+  theme_minimal() +
+  theme(plot.margin = unit(c(1,1,1,1), "cm"))
 
-# 4. Combinar los gráficos en una sola figura
-  # Patchwork: Histograma y barras arriba a la izquierda, pie chart a la derecha
-  (g1 / g2) | g3
+# 4. Pie chart: porcentaje de status HTTP
+  df_status <- web_mediawiki %>%
+  group_by(Estado) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  mutate(pct = count / sum(count) * 100)
+
+g3 <- ggplot(df_status, aes(x = "", y = pct, fill = Estado)) +
+  geom_col(width = 1, color = "white") +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = paste0(round(pct,1), "%")), 
+            position = position_stack(vjust = 0.5), size = 3) +
+  theme_void() +
+  theme(legend.position = "right",
+        plot.margin = unit(c(1,1,1,1), "cm"))
+# 4. Combinar los gráficos
+# Patchwork: g1 y g2 arriba a la izquierda, pie chart a la derecha
+(g1 / g2) | g3 +
+  plot_layout(widths = c(2,1))   # dos columnas: izquierda más ancha
 
 ```
-
-
 
 
 
