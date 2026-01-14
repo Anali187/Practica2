@@ -14,13 +14,17 @@ library(httr)
 library(XML)
 library(ggplot2)
 library(rvest)
+library(DT)
 library(dplyr)
-library(stringr)
+library(knitr)
 ```
 
-## Practica2 
+## Practica2
+
+### Pregunta 1:
 
 ### Ejercicio 1
+
 Queremos programar un programa de tipo web scrapping con el que podamos obtener 
 una página web, mediante su URL, y poder analizar su contenido HTML con tal de extraer 
 datos e información específica. 
@@ -30,14 +34,20 @@ La URL elegida es la siguiente.URL: https://www.mediawiki.org/wiki/MediaWiki
 Lectura base: 
 
 ```{r get_webpage, include=TRUE}
-html <- read_html("https://www.mediawiki.org/wiki/MediaWiki")
+url <- "https://www.mediawiki.org/wiki/MediaWiki"
+
+html <- read_html(url)
+
 class(html)
+
 print(html)
 ```
 
 ### Ejercicio 2
+
 Analizar el contenido de la web, buscando el título de la página (que en HTML 
-se etiqueta como “title”). 
+se etiqueta como “title”).
+
 En las cabeceras web encontramos información como el título, los ficheros de 
 estilo visual, y meta-información como el nombre del autor de la página, una 
 descripción de esta, el tipo de codificación de esta, o palabras clave que indican 
@@ -46,8 +56,6 @@ convertida a un formato analizable (como XML), buscaremos los elementos de
 tipo “title”. P.e. “<title>Titulo de Página</title>”. 
 
 ```{r get_title, include=TRUE}
-url <- "https://www.mediawiki.org/wiki/MediaWiki"
-
 page <- read_html(url)
 
 title <- page %>%
@@ -58,8 +66,10 @@ title
 ```
 
 ### Ejercicio 3
+
 Analizar el contenido de la web, buscando todos los enlaces (que en HTML se 
-etiquetan como “a”), buscando el texto del enlace, así como la URL. 
+etiquetan como “a”), buscando el texto del enlace, así como la URL.
+
 Vamos a extraer, usando las funciones de búsqueda XML, todos los enlaces que 
 salen de esta página con tal de listarlos y poder descargarlas más tarde. Sabemos 
 que estos son elementos de tipo “<a>”, que tienen el atributo “href” para indicar 
@@ -67,110 +77,207 @@ la URL del enlace. P.e. “<a href = ‘enlace’>Texto del Enlace</a>”. Del e
 nos quedaremos con la URL de destino y con el valor del enlace (texto del 
 enlace). 
 
-```{r get_ahref, include=FALSE}
-url <- "https://www.mediawiki.org/wiki/MediaWiki"
-page <- read_html(url)
-links <- page %>%
-  html_elements("a") %>%
-  html_attr("href")
-links
-```
+```{r get_ahref, include=TRUE}
+# Extraer nodos <a>
+nodos_enlaces <- html_elements(page, "a")
 
-### Ejercicio 3 bis 
-```{r get_ahref_bis, include=TRUE}
-url <- "https://www.mediawiki.org/wiki/MediaWiki"
-pagina <- read_html(url)
+# Extraer URL (href)
+urls <- html_attr(nodos_enlaces, "href")
 
-# 1️⃣ Obtener los nodos <a>
-nodos_enlaces <- html_nodes(pagina, "a")
+# Extraer texto del enlace
+textos <- html_text(nodos_enlaces, trim = TRUE)
 
-# 2️⃣ Crear la tabla correctamente
-tabla_enlaces <- tibble(
-  texto = html_text(nodos_enlaces, trim = TRUE),
-  href  = html_attr(nodos_enlaces, "href")
+# Crear tabla de enlaces
+web_mediawiki <- data.frame(
+  texto_enlace = textos,
+  url_enlace = urls,
+  stringsAsFactors = FALSE
 )
-
-tabla_enlaces <- tabla_enlaces %>%
-  filter(
-    !is.na(href),
-    href != "",
-    !str_starts(href, "#")
-  )
-
-tabla_resultado <- tabla_enlaces %>%
-  group_by(href, texto) %>%
-  summarise(
-    veces = n(),
-    .groups = "drop"
-  ) %>%
-  arrange(desc(veces))
-
-tabla_resultado
+datatable(head(web_mediawiki))
 ```
-
-
 
 ### Ejercicio 4
 Generar una tabla con cada enlace encontrado, indicando el texto que
 acompaña el enlace, y el número de veces que aparece un enlace con ese
 mismo objetivo.
+
 En este paso nos interesa reunir los datos obtenidos en el anterior paso.
 Tendremos que comprobar, para cada enlace, cuantas veces aparece. 
 
-```{r create_table, include=FALSE}
-url <- "https://www.mediawiki.org/wiki/MediaWiki"
+```{r create_table, include=TRUE}
+# Crear la columna 'veces_visto' sin dplyr
+  web_mediawiki$veces_visto <- ave(web_mediawiki$url_enlace, web_mediawiki$url_enlace, FUN=length)
 
-page <- read_html(url)
-
-
-df <- tibble(
-  text = as.character(page %>% html_elements("a") %>% html_text(trim = TRUE)),
-  href = as.character(page %>% html_elements("a") %>% html_attr("href"))
-)
-links <- page %>% html_elements("a")
-texts <- links %>% html_text(trim = TRUE)
-hrefs <- links %>% html_attr("href")
-
-# Solo vectores válidos
-df <- tibble(
-  text = texts,
-  href = hrefs
-)
-df 
-```
-
-# Ejercicio 4 - bis test alternativa 
-Resultado ejercicio:
-```{r carga_libs_bis, include=TRUE}
-url <- "https://www.mediawiki.org/wiki/MediaWiki"
-page <- read_html(url)
-
-enlaces <- page %>%
-  html_elements("a") %>%
-  html_attr("href")
-
-tabla_enlaces <- table(enlaces)
-
-df_enlaces <- as.data.frame(table(enlaces))
-colnames(df_enlaces) <- c("enlace", "frecuencia")
-
-textos <- page %>%
-  html_elements("a") %>%
-  html_text(trim = TRUE)
-
-df <- data.frame(
-  texto = textos,
-  enlace = enlaces,
-  stringsAsFactors = FALSE
-)
-
-tabla <- as.data.frame(table(df$enlace))
-colnames(tabla) <- c("enlace", "frecuencia")
-tabla
-
-tabla_completa <- as.data.frame(table(df$texto, df$enlace))
-colnames(tabla_completa) <- c("texto", "enlace", "frecuencia")
-
-tabla_completa
+# Mostrar tabla con DT
+  datatable(head(web_mediawiki),colnames = c("Texto del enlace", "URL del enlace", "Veces visto"))
 
 ```
+
+
+### Ejercicio 5
+Para cada enlace, seguirlo e indicar si está activo (podemos usar el código de
+status HTTP al hacer una petición a esa URL).
+
+
+En este paso podemos usar la función HEAD de la librería “httr”, que en vez de
+descargarse la página como haría GET, solo consultamos los atributos de la
+página o fichero destino.
+
+
+HEAD nos retorna una lista de atributos, y de entre estos hay uno llamado
+“header” que contiene más atributos sobre la página buscada. Si seguimos
+podemos encontrar el “status_code” en “resultado$status_code”. El
+“status_code” nos indica el resultado de la petición de página o fichero. Este
+código puede indicar que la petición ha sido correcta (200), que no se ha
+encontrado (404), que el acceso está restringido (403), etc.
+Tened en cuenta que hay enlaces con la URL relativa, con forma
+“/xxxxxx/xxxxx/a.html”. En este caso, podemos indicarle como “handle” el
+dominio de la página que estamos tratando, o añadirle el dominio a la URL
+con la función “paste”
+
+- Tened en cuenta que puede haber enlaces externos con la URL absoluta, con
+forma “http://xxxxxx/xxxx/a.html” (o https), que los trataremos
+directamente.
+- Tened en cuenta que puede haber enlaces que apunten a subdominios
+distintos, con forma “//subdominio/xxxx/xxxx/a.html”. En este caso
+podemos adjuntarle el prefijo “https:” delante, convirtiendo la URL en
+absoluta.
+- Tened en cuenta URLS internas con tags, como por ejemplo “#search-p”.
+Estos apuntan a la misma página en la que estamos, pero diferente altura de
+página. Equivale a acceder a la URL relativa de la misma página en la que
+estamos.
+
+Es recomendado poner un tiempo de espera entre petición y petición de pocos
+segundos (comando “Sys.sleep”), para evitar ser “baneados” por el servidor. Para
+poder examinar las URLs podemos usar expresiones regulares, funciones como
+“grep”, o mirar si en los primeros caracteres de la URL encontramos “//” o “http”.
+Para tratar las URLs podemos usar la ayuda de la función “paste”, para manipular
+cadenas de caracteres y poder añadir prefijos a las URLs si fuera necesario
+
+```{r dominio_base, include=TRUE}
+# Dominio base
+dominio_base <- "https://www.mediawiki.org"
+
+# Normalizacion de URLs
+normalizar_url <- function(url) {
+  if (is.na(url)) return(NA)
+  if (grepl("^http", url)) return(url) # URL absoluta
+  if (grepl("^//", url)) return(paste0("https:", url)) # Subdominio
+  if (grepl("^#", url)) return(paste0(dominio_base, "/wiki/MediaWiki")) # Anchor
+  paste0(dominio_base, url) # URL relativa
+}
+
+# Función para determinar tipo de URL
+es_absoluta_o_relativa <- function(url) {
+  if (is.na(url)) return(NA)
+  if (grepl("^http", url)) return("absoluta")
+  if (grepl("^//", url) | grepl("^#", url)) return("relativa")
+  return("relativa")
+}
+
+# Aplicar normalizacion sobre la tabla correcta
+web_mediawiki$url_normalizada <- sapply(web_mediawiki$url_enlace, normalizar_url)
+web_mediawiki$tipo_url <- sapply(web_mediawiki$url_enlace, es_absoluta_o_relativa)
+
+# Función para obtener estado HTTP
+obtener_estado <- function(url) {
+  if (is.na(url)) return(NA)
+  tryCatch(
+    HEAD(url)$status_code,
+  error = function(e) NA
+)
+}
+
+# Obtener estado HTTP de cada enlace
+web_mediawiki$status_http <- sapply(web_mediawiki$url_normalizada, function(u) {
+res <- obtener_estado(u)
+# Sys.sleep(1) # pausa para no saturar el servidor
+#res
+})
+
+# Crear columna interpretativa para el estado
+web_mediawiki$Estado <- sapply(web_mediawiki$status_http, function(x) {
+  if (is.na(x)) return("Desconocido")
+  if (x == 200) return("Activo")
+  if (x == 404) return("No encontrado")
+  if (x == 403) return("Prohibido")
+  paste("Código", x)
+})
+
+# Seleccionar y renombrar columnas para la tabla final
+tabla_recomendaciones <- web_mediawiki[, c("url_normalizada", "texto_enlace", "veces_visto","tipo_url", "Estado")]
+colnames(tabla_recomendaciones) <- c("Enlace", "Texto", "Visto","Tipo URL", "Estado")
+
+# Mostrar la tabla ordenada con kable
+datatable(tabla_recomendaciones,caption = "Estado de enlaces - Ejercicio 5",options = list(pageLength = 10))
+```
+
+### Pregunta 2:
+Elaborad, usando las librerías de gráficos base y qplot (ggplot2), una infografía sobre los
+datos obtenidos. Tal infografía será una reunión de gráficos donde se muestren los
+siguientes detalles: 
+
+### Ejericio:1
+Un histograma con la frecuencia de aparición de los enlaces, pero separado por
+URLs absolutas (con “http…”) y URLs relativas.
+
+```{r apartado2_1, include=TRUE}
+# Clasificar enlaces en absolutos y relativos
+tabla_final$tipo_url <- ifelse(
+  grepl("^http", tabla_final$enlace_url),
+  "Absoluta (http, https)",
+  "Relativa(/wiki/...,#..)"
+)
+# Crear data frame para el histograma
+df_histograma <- data.frame(
+  veces_visto = tabla_final$veces_visto,
+  tipo_url = tabla_final$tipo_url
+)
+# Histograma con qplot
+qplot(
+  x = veces_visto,
+  data = df_histograma,
+  geom = "histogram",
+  fill = tipo_url,
+  bins = 10,
+  alpha = I(0.6),
+  main = "Frecuencia de aparición de enlaces",
+  xlab = "Número de veces que aparece el enlace",
+  ylab = "Frecuencia"
+)
+```
+
+### Ejericio:2
+
+Un gráfico de barras indicando la suma de enlaces que apuntan a otros
+dominios o servicios (distinto a https://www.mediawiki.org en el caso de
+ejemplo) vs. la suma de los otros enlaces.
+Aquí queremos distinguir enlaces que apuntan a mediawiki versus el resto.
+Sabemos que las URLs relativas ya apuntan dentro, por lo tanto hay que analizar
+las URLs absolutas y comprobar que apunten a https://www.mediawiki.org.
+
+```{r apartado2_2, include=TRUE}
+tabla_final$destino <- ifelse(
+  grepl("^http", tabla_final$enlace_url) &
+    !grepl("www.mediawiki.org", tabla_final$enlace_url),
+  "Otros dominios",
+  "MediaWiki"
+)
+# Crear gráfico de barras
+qplot(
+  x = destino,
+  data = tabla_final,
+  geom = "bar",
+  fill = destino,
+  main = "Enlaces a MediaWiki vs otros dominios",
+  xlab = "Destino del enlace",
+  ylab = "Número de enlaces"
+)
+```
+
+
+
+
+
+
+
