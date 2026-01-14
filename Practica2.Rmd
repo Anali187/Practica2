@@ -284,40 +284,29 @@ gráfico lo uniremos a los anteriores. El objetivo final es obtener una imagen q
 recopile los gráficos generados
 
 ```{r infografia, include=TRUE}
-library(dplyr)
-library(patchwork)
+# 1. Preparar datos: convertir a numérico
+  web_mediawiki$veces_visto <- as.numeric(web_mediawiki$veces_visto)
 
-# ----------------------------
-# 1️⃣ Preparar datos: convertir a numérico
-# ----------------------------
-web_mediawiki$veces_visto <- as.numeric(web_mediawiki$veces_visto)
+# 2. Resumir total de veces por tipo de URL
+  df_frecuencia <- web_mediawiki %>%
+    group_by(tipo_url) %>%
+    summarise(total_veces = sum(veces_visto, na.rm = TRUE))
 
-# ----------------------------
-# 2️⃣ Resumir total de veces por tipo de URL
-# ----------------------------
-df_frecuencia <- web_mediawiki %>%
-  group_by(tipo_url) %>%
-  summarise(total_veces = sum(veces_visto, na.rm = TRUE))
+# 3. Gráfico de barras simple
+  g1 <- ggplot(df_frecuencia, aes(x = tipo_url, y = total_veces, fill = tipo_url)) +
+    geom_col() +
+    labs(
+      title = "Frecuencia total de aparición de enlaces por tipo de URL",
+      x = "Tipo de URL",
+      y = "Total de veces que aparece el enlace",
+      fill = "Tipo de URL"
+    ) +
+    theme_minimal()
 
-# ----------------------------
-# 3️⃣ Gráfico de barras simple
-# ----------------------------
-g1 <- ggplot(df_frecuencia, aes(x = tipo_url, y = total_veces, fill = tipo_url)) +
-  geom_col() +
-  labs(
-    title = "Frecuencia total de aparición de enlaces por tipo de URL",
-    x = "Tipo de URL",
-    y = "Total de veces que aparece el enlace",
-    fill = "Tipo de URL"
-  ) +
-  theme_minimal()
 
-# ----------------------------
 # 4. Combinar los gráficos en una sola figura
-# ----------------------------
-# Patchwork: Histograma y barras arriba a la izquierda, pie chart a la derecha
-(g1 / g2) | g3
-
+  # Patchwork: Histograma y barras arriba a la izquierda, pie chart a la derecha
+  (g1 / g2) | g3
 
 ```
 
