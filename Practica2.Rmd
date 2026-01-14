@@ -248,27 +248,81 @@ ggplot(df_tipo, aes(x = tipo_url, fill = tipo_url)) +
 Un gráfico de barras indicando la suma de enlaces que apuntan a otros
 dominios o servicios (distinto a https://www.mediawiki.org en el caso de
 ejemplo) vs. la suma de los otros enlaces.
+
 Aquí queremos distinguir enlaces que apuntan a mediawiki versus el resto.
 Sabemos que las URLs relativas ya apuntan dentro, por lo tanto hay que analizar
 las URLs absolutas y comprobar que apunten a https://www.mediawiki.org.
 
 ```{r apartado2_2, include=TRUE}
-tabla_final$destino <- ifelse(
-  grepl("^http", tabla_final$enlace_url) &
-    !grepl("www.mediawiki.org", tabla_final$enlace_url),
+# Clasificar los enlaces: MediaWiki vs otros dominios
+web_mediawiki$destino <- ifelse(
+  !is.na(web_mediawiki$url_normalizada) &  # ignorar NAs
+    grepl("^http", web_mediawiki$url_normalizada) & 
+    !grepl("www.mediawiki.org", web_mediawiki$url_normalizada),
   "Otros dominios",
   "MediaWiki"
 )
-# Crear gráfico de barras
-qplot(
-  x = destino,
-  data = tabla_final,
-  geom = "bar",
-  fill = destino,
-  main = "Enlaces a MediaWiki vs otros dominios",
-  xlab = "Destino del enlace",
-  ylab = "Número de enlaces"
-)
+ggplot(web_mediawiki, aes(x = destino, fill = destino)) +
+  geom_bar(na.rm = TRUE) +  # ignorar NAs si existen
+  labs(
+    title = "Enlaces a MediaWiki vs otros dominios",
+    x = "Destino del enlace",
+    y = "Número de enlaces",
+    fill = "Destino"
+  ) +
+  theme_minimal()
+```
+
+### Ejericio:3
+
+Un gráfico de tarta (pie chart) indicando los porcentajes de Status de nuestro
+análisis.
+Por ejemplo, si hay 6 enlaces con status “200” y 4 enlaces con status “404”, la
+tarta mostrará un 60% con la etiqueta “200” y un 40% con la etiqueta “404”. Este
+gráfico lo uniremos a los anteriores. El objetivo final es obtener una imagen que
+recopile los gráficos generados
+
+```{r df_status, include=TRUE}
+library(dplyr)
+library(patchwork)
+
+# Preparar datos para pie chart
+df_status <- web_mediawiki %>%
+  group_by(Estado) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  mutate(pct = count / sum(count) * 100)
+
+# Histograma de frecuencia de enlaces por tipo de URL
+g1 <- ggplot(web_mediawiki, aes(x = as.numeric(veces_visto), fill = tipo_url)) +
+  geom_histogram(bins = 10, alpha = 0.6, color = "black") +
+  labs(title = "Frecuencia de aparición de enlaces",
+       x = "Número de veces que aparece el enlace",
+       y = "Frecuencia",
+       fill = "Tipo de URL") +
+  theme_minimal()
+
+# Gráfico de barras: MediaWiki vs otros dominios
+g2 <- ggplot(web_mediawiki, aes(x = destino, fill = destino)) +
+  geom_bar(na.rm = TRUE) +
+  labs(title = "Enlaces a MediaWiki vs otros dominios",
+       x = "Destino del enlace",
+       y = "Número de enlaces",
+       fill = "Destino") +
+  theme_minimal()
+
+# Pie chart: porcentaje de status HTTP
+g3 <- ggplot(df_status, aes(x = "", y = pct, fill = Estado)) +
+  geom_col(width = 1, color = "white") +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = paste0(round(pct,1), "%")), 
+            position = position_stack(vjust = 0.5)) +
+  labs(title = "Porcentaje de status HTTP") +
+  theme_void() +
+  theme(legend.position = "right")
+
+# Componer todos los gráficos en una sola figura
+(g1 / g2) | g3
+
 ```
 
 
