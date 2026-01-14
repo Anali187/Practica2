@@ -15,6 +15,7 @@ library(XML)
 library(ggplot2)
 library(rvest)
 library(dplyr)
+library(stringr)
 ```
 
 ## Practica2 
@@ -66,7 +67,7 @@ la URL del enlace. P.e. “<a href = ‘enlace’>Texto del Enlace</a>”. Del e
 nos quedaremos con la URL de destino y con el valor del enlace (texto del 
 enlace). 
 
-```{r get_ahref, include=TRUE}
+```{r get_ahref, include=FALSE}
 url <- "https://www.mediawiki.org/wiki/MediaWiki"
 page <- read_html(url)
 links <- page %>%
@@ -75,6 +76,40 @@ links <- page %>%
 links
 ```
 
+### Ejercicio 3 bis 
+```{r get_ahref_bis, include=TRUE}
+url <- "https://www.mediawiki.org/wiki/MediaWiki"
+pagina <- read_html(url)
+
+# 1️⃣ Obtener los nodos <a>
+nodos_enlaces <- html_nodes(pagina, "a")
+
+# 2️⃣ Crear la tabla correctamente
+tabla_enlaces <- tibble(
+  texto = html_text(nodos_enlaces, trim = TRUE),
+  href  = html_attr(nodos_enlaces, "href")
+)
+
+tabla_enlaces <- tabla_enlaces %>%
+  filter(
+    !is.na(href),
+    href != "",
+    !str_starts(href, "#")
+  )
+
+tabla_resultado <- tabla_enlaces %>%
+  group_by(href, texto) %>%
+  summarise(
+    veces = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(veces))
+
+tabla_resultado
+```
+
+
+
 ### Ejercicio 4
 Generar una tabla con cada enlace encontrado, indicando el texto que
 acompaña el enlace, y el número de veces que aparece un enlace con ese
@@ -82,7 +117,7 @@ mismo objetivo.
 En este paso nos interesa reunir los datos obtenidos en el anterior paso.
 Tendremos que comprobar, para cada enlace, cuantas veces aparece. 
 
-```{r create_table, include=TRUE}
+```{r create_table, include=FALSE}
 url <- "https://www.mediawiki.org/wiki/MediaWiki"
 
 page <- read_html(url)
@@ -101,6 +136,41 @@ df <- tibble(
   text = texts,
   href = hrefs
 )
-
 df 
+```
+
+# Ejercicio 4 - bis test alternativa 
+Resultado ejercicio:
+```{r carga_libs_bis, include=TRUE}
+url <- "https://www.mediawiki.org/wiki/MediaWiki"
+page <- read_html(url)
+
+enlaces <- page %>%
+  html_elements("a") %>%
+  html_attr("href")
+
+tabla_enlaces <- table(enlaces)
+
+df_enlaces <- as.data.frame(table(enlaces))
+colnames(df_enlaces) <- c("enlace", "frecuencia")
+
+textos <- page %>%
+  html_elements("a") %>%
+  html_text(trim = TRUE)
+
+df <- data.frame(
+  texto = textos,
+  enlace = enlaces,
+  stringsAsFactors = FALSE
+)
+
+tabla <- as.data.frame(table(df$enlace))
+colnames(tabla) <- c("enlace", "frecuencia")
+tabla
+
+tabla_completa <- as.data.frame(table(df$texto, df$enlace))
+colnames(tabla_completa) <- c("texto", "enlace", "frecuencia")
+
+tabla_completa
+
 ```
