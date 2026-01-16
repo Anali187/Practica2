@@ -327,4 +327,75 @@ ggplot(web_mediawiki, aes(x = destino, fill = destino)) +
   ) +
   theme_minimal()
 ```
+### Ejericio:3
+
+Un gráfico de tarta (pie chart) indicando los porcentajes de Status de nuestro
+análisis.
+Por ejemplo, si hay 6 enlaces con status “200” y 4 enlaces con status “404”, la
+tarta mostrará un 60% con la etiqueta “200” y un 40% con la etiqueta “404”. Este
+gráfico lo uniremos a los anteriores. El objetivo final es obtener una imagen que
+recopile los gráficos generados
+
+```{r infografia, include=TRUE}
+# 1. Asegurarse de que 'veces_visto' es numérico
+  web_mediawiki$veces_visto <- as.numeric(web_mediawiki$veces_visto)
+
+# 2. Gráfico de barras: frecuencia total de aparición por tipo de URL
+  df_frecuencia <- web_mediawiki %>%
+  group_by(tipo_url) %>%
+  summarise(total_veces = sum(veces_visto, na.rm = TRUE))
+
+g1 <- ggplot(df_frecuencia, aes(x = tipo_url, y = total_veces, fill = tipo_url)) +
+  geom_col() +
+  labs(
+    title = "Frecuencia total de aparición de enlaces",
+    x = "Tipo de URL",
+    y = "Total apariciones",
+    fill = "Tipo de URL"
+  ) +
+  theme_minimal() +
+  theme(plot.margin = unit(c(1,1,1,1), "cm"))
+
+# 3. Gráfico de barras: MediaWiki vs otros dominios
+  web_mediawiki$destino <- ifelse(
+  !is.na(web_mediawiki$url_normalizada) &
+    grepl("^http", web_mediawiki$url_normalizada) &
+    !grepl("www.mediawiki.org", web_mediawiki$url_normalizada),
+  "Otros dominios",
+  "MediaWiki"
+)
+g2 <- ggplot(web_mediawiki, aes(x = destino, fill = destino)) +
+  geom_bar(na.rm = TRUE) +
+  labs(
+    title = "Enlaces a MediaWiki vs otros dominios",
+    x = "Destino",
+    y = "Cantidad",
+    fill = "Destino"
+  ) +
+  theme_minimal() +
+  theme(plot.margin = unit(c(1,1,1,1), "cm"))
+
+# 4. Pie chart: porcentaje de status HTTP
+  df_status <- web_mediawiki %>%
+  group_by(Estado) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  mutate(pct = count / sum(count) * 100)
+
+g3 <- ggplot(df_status, aes(x = "", y = pct, fill = Estado)) +
+  geom_col(width = 1, color = "white") +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = paste0(round(pct,1), "%")), 
+  position = position_stack(vjust = 0.5), size = 3) +
+  theme_void() +
+  theme(legend.position = "right",
+        plot.margin = unit(c(1,1,1,1), "cm"))
+# 4. Combinar los gráficos
+# Patchwork: g1 y g2 arriba a la izquierda, pie chart a la derecha
+(g1 / g2) | g3 +plot_layout(widths = c(1000,3))   # dos columnas: izquierda más ancha
+
+```
+
+
+
+
 
