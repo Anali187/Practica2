@@ -37,10 +37,7 @@ Lectura base:
 url <- "https://www.mediawiki.org/wiki/MediaWiki"
 
 html <- read_html(url)
-
-class(html)
-
-print(html)
+html
 ```
 
 ### Ejercicio 2
@@ -61,7 +58,6 @@ page <- read_html(url)
 title <- page %>%
   html_element("title") %>%
   html_text(trim = TRUE)
-
 title
 ```
 
@@ -76,6 +72,8 @@ que estos son elementos de tipo “<a>”, que tienen el atributo “href” par
 la URL del enlace. P.e. “<a href = ‘enlace’>Texto del Enlace</a>”. Del enlace 
 nos quedaremos con la URL de destino y con el valor del enlace (texto del 
 enlace). 
+
+**IMPORTANTE: a nivel de diseño hemos decidio obtener los enlaces existentes sólo en le BODY, NO en la cabezera de la página web**
 
 ```{r get_ahref, include=TRUE}
 # Extraer nodos <a>
@@ -93,7 +91,52 @@ web_mediawiki <- data.frame(
   url_enlace = urls,
   stringsAsFactors = FALSE
 )
-datatable(head(web_mediawiki))
+
+# Mostrar la tabla con más de las seis primeras filas 
+datatable(
+  web_mediawiki,
+  options = list(
+    pageLength = 50,   # Número de filas por página
+    lengthMenu = c(5, 10, 20, 50),
+    scrollY = "400px",
+    scrollCollapse = TRUE
+  )
+)
+
+```
+```{r get_ahref_option2, include=FALSE}
+url <- "https://www.mediawiki.org/wiki/MediaWiki"
+page <- read_html(url)
+
+# Obtencion texto
+link_text <- page %>%
+  html_elements("a") %>%
+  html_text(trim = TRUE)
+
+# Obtencion urls
+link_urls <- page %>%
+  html_elements("a") %>%
+  html_attr("href")
+
+# Obtencion texto y url de cada uno
+links <- data.frame(
+  text = link_text,
+  url  = link_urls,
+  stringsAsFactors = FALSE
+)
+
+# limpiar el dataframe 
+links <- links %>%
+  dplyr::filter(
+    text != "",
+    !is.na(url)
+  )
+
+# forzar el valor base del número de filas por página a 10
+datatable(links,
+          options = list(
+            pageLength = 10  
+          ))
 ```
 
 ### Ejercicio 4
@@ -104,7 +147,23 @@ mismo objetivo.
 En este paso nos interesa reunir los datos obtenidos en el anterior paso.
 Tendremos que comprobar, para cada enlace, cuantas veces aparece. 
 
-```{r create_table, include=TRUE}
+```{r create_table_option2, include=TRUE}
+# Crear la columna 'veces_visto' sin dplyr
+  web_mediawiki$veces_visto <- ave(web_mediawiki$url_enlace, web_mediawiki$url_enlace, FUN=length)
+
+datatable(
+  web_mediawiki,
+  colnames = c("Texto del enlace", "URL del enlace", "Veces visto"),
+  options = list(
+    pageLength = 50,   # Número de filas por página
+    lengthMenu = c(5, 10, 20, 50),
+    scrollY = "400px",
+    scrollCollapse = TRUE
+  )
+)
+```
+
+```{r create_table_just_6_rows, include=FALSE}
 # Crear la columna 'veces_visto' sin dplyr
   web_mediawiki$veces_visto <- ave(web_mediawiki$url_enlace, web_mediawiki$url_enlace, FUN=length)
 
@@ -222,8 +281,6 @@ Un histograma con la frecuencia de aparición de los enlaces, pero separado por
 URLs absolutas (con “http…”) y URLs relativas.
 
 ```{r apartado2_1, include=TRUE}
-library(ggplot2)
-
 # Crear data frame con tipo de URL
 df_tipo <- data.frame(
   tipo_url = web_mediawiki$tipo_url
@@ -239,12 +296,9 @@ ggplot(df_tipo, aes(x = tipo_url, fill = tipo_url)) +
     fill = "Tipo de URL"
   ) +
   theme_minimal()
-
-
 ```
 
 ### Ejericio:2
-
 Un gráfico de barras indicando la suma de enlaces que apuntan a otros
 dominios o servicios (distinto a https://www.mediawiki.org en el caso de
 ejemplo) vs. la suma de los otros enlaces.
@@ -273,76 +327,4 @@ ggplot(web_mediawiki, aes(x = destino, fill = destino)) +
   ) +
   theme_minimal()
 ```
-
-### Ejericio:3
-
-Un gráfico de tarta (pie chart) indicando los porcentajes de Status de nuestro
-análisis.
-Por ejemplo, si hay 6 enlaces con status “200” y 4 enlaces con status “404”, la
-tarta mostrará un 60% con la etiqueta “200” y un 40% con la etiqueta “404”. Este
-gráfico lo uniremos a los anteriores. El objetivo final es obtener una imagen que
-recopile los gráficos generados
-
-```{r infografia, include=TRUE}
-# 1. Asegurarse de que 'veces_visto' es numérico
-  web_mediawiki$veces_visto <- as.numeric(web_mediawiki$veces_visto)
-
-# 2. Gráfico de barras: frecuencia total de aparición por tipo de URL
-  df_frecuencia <- web_mediawiki %>%
-  group_by(tipo_url) %>%
-  summarise(total_veces = sum(veces_visto, na.rm = TRUE))
-
-g1 <- ggplot(df_frecuencia, aes(x = tipo_url, y = total_veces, fill = tipo_url)) +
-  geom_col() +
-  labs(
-    title = "Frecuencia total de aparición de enlaces",
-    x = "Tipo de URL",
-    y = "Total apariciones",
-    fill = "Tipo de URL"
-  ) +
-  theme_minimal() +
-  theme(plot.margin = unit(c(1,1,1,1), "cm"))
-
-# 3. Gráfico de barras: MediaWiki vs otros dominios
-  web_mediawiki$destino <- ifelse(
-  !is.na(web_mediawiki$url_normalizada) &
-    grepl("^http", web_mediawiki$url_normalizada) &
-    !grepl("www.mediawiki.org", web_mediawiki$url_normalizada),
-  "Otros dominios",
-  "MediaWiki"
-)
-g2 <- ggplot(web_mediawiki, aes(x = destino, fill = destino)) +
-  geom_bar(na.rm = TRUE) +
-  labs(
-    title = "Enlaces a MediaWiki vs otros dominios",
-    x = "Destino",
-    y = "Cantidad",
-    fill = "Destino"
-  ) +
-  theme_minimal() +
-  theme(plot.margin = unit(c(1,1,1,1), "cm"))
-
-# 4. Pie chart: porcentaje de status HTTP
-  df_status <- web_mediawiki %>%
-  group_by(Estado) %>%
-  summarise(count = n(), .groups = "drop") %>%
-  mutate(pct = count / sum(count) * 100)
-
-g3 <- ggplot(df_status, aes(x = "", y = pct, fill = Estado)) +
-  geom_col(width = 1, color = "white") +
-  coord_polar(theta = "y") +
-  geom_text(aes(label = paste0(round(pct,1), "%")), 
-            position = position_stack(vjust = 0.5), size = 3) +
-  theme_void() +
-  theme(legend.position = "right",
-        plot.margin = unit(c(1,1,1,1), "cm"))
-# 4. Combinar los gráficos
-# Patchwork: g1 y g2 arriba a la izquierda, pie chart a la derecha
-(g1 / g2) | g3 +plot_layout(widths = c(1000,3))   # dos columnas: izquierda más ancha
-
-```
-
-
-
-
 
