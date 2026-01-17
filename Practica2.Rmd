@@ -17,6 +17,7 @@ library(rvest)
 library(DT)
 library(dplyr)
 library(knitr)
+library(patchwork)
 ```
 
 ## Practica2
@@ -389,12 +390,11 @@ g3 <- ggplot(df_status, aes(x = "", y = pct, fill = Estado)) +
   theme_void() +
   theme(legend.position = "right",
         plot.margin = unit(c(1,1,1,1), "cm"))
-# 4. Combinar los gráficos
+# 5. Combinar los gráficos
 # Patchwork: g1 y g2 arriba a la izquierda, pie chart a la derecha
 (g1 / g2) | g3 +plot_layout(widths = c(1000,3))   # dos columnas: izquierda más ancha
 
 ```
-
 
 
 
